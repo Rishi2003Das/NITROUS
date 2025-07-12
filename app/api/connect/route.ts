@@ -1,71 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import User from '@/models/userModel';
-import  connectToDB  from '@/dbConnect/dbConnect';
-import { generateConnectToken } from '@/helpers/getToken'; // assumes you added generateConnectToken
 import { sendEmail } from '@/helpers/connectMail';
+import User from '@/models/userModel';
 
 export async function POST(req: NextRequest) {
   try {
-    await connectToDB();
+    const body = await req.json();
+    const { receiverEmail, sender } = body;
 
-    const { recipientId } = await req.json();
-    const senderJSON = req.cookies.get('User')?.value;
-    if (!senderJSON) {
-      return NextResponse.json({ error: 'Unauthorized: No sender data' }, { status: 401 });
+    if (!receiverEmail || !sender) {
+      return NextResponse.json({ error: 'Missing sender or receiver data' }, { status: 400 });
     }
 
-    const sender = JSON.parse(senderJSON);
-    const recipient = await User.findById(recipientId);
-    if (!recipient) {
-      return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+    const receiver = await User.findOne({ email: receiverEmail });
+    if (!receiver) {
+      return NextResponse.json({ error: 'Receiver not found' }, { status: 404 });
     }
-
-    // Generate JWT token with sender info
-    const token = generateConnectToken({
-      userId: recipient._id.toString(),
-      senderEmail: sender.email,
-      senderName: sender.name,
-      emailType: 'CONNECT'
-    });
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const subject = `${sender.name} wants to connect with you on SkillSwap`;
+    const URL='https://nitrous-iota.vercel.app'
     const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto;">
-        <h2>👋 New Connection Request</h2>
-        <p><strong>${sender.name}</strong> wants to connect with you on <strong>SkillSwap</strong>.</p>
-        <p>Email: ${sender.email}</p>
+      <h2>New SkillSwap Request from ${sender.name}</h2>
+      <p><strong>Email:</strong> ${sender.email}</p>
+      <p><strong>Location:</strong> ${sender.location || 'N/A'}</p>
 
-        <div style="margin: 20px 0;">
-          <a href="${baseUrl}/api/respond?token=${token}&action=accept" 
-             style="padding: 12px 20px; background: #10b981; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">
-            ✅ Accept
-          </a>
-          <a href="${baseUrl}/api/respond?token=${token}&action=reject" 
-             style="padding: 12px 20px; background: #ef4444; color: white; text-decoration: none; border-radius: 5px;">
-            ❌ Reject
-          </a>
-        </div>
+      <h4>Skills Offered:</h4>
+      <ul>${(sender.skillsOffered || []).map((s: { name: string }) => `<li>${s.name}</li>`).join('')}</ul>
 
-        <p>If you do not recognize this request, you can safely ignore this email.</p>
-        <hr />
-        <p style="font-size: 12px; color: #999;">SkillSwap &copy; ${new Date().getFullYear()}</p>
-      </div>
+      <h4>Skills Wanted:</h4>
+      <ul>${(sender.skillsWanted || []).map((s: { name: string }) => `<li>${s.name}</li>`).join('')}</ul>
+
+      <p>Respond:</p>
+      <a href="${URL}/api/respond?email=${encodeURIComponent(sender.email)}&action=accept"
+         style="padding: 10px 15px; background: green; color: white; text-decoration: none; margin-right: 10px;">
+        ✅ Accept
+      </a>
+
+      <a href="${URL}/api/respond?email=${encodeURIComponent(sender.email)}&action=reject"
+         style="padding: 10px 15px; background: red; color: white; text-decoration: none;">
+        ❌ Reject
+      </a>
     `;
 
-    // Send the email with Accept/Reject buttons
     await sendEmail({
-      email: recipient.email,
-      emailType: 'CONNECT',
-      userId: recipient._id.toString(),
-      subject,
+      email: receiver.email,
+      subject: `New SkillSwap Request from ${sender.name}`,
+      emailType: 'CONNECT_REQUEST',
       html,
     });
 
-    return NextResponse.json({ message: 'Connection email sent successfully.' });
+    return NextResponse.json({ message: 'Connection request sent' });
 
-  } catch (error) {
-    console.error('Connect route error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err) {
+    console.error('Connect error:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
