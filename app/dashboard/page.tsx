@@ -18,6 +18,8 @@ import {
   Globe,
   Clock,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 // Type definitions based on your User model
 interface ISkill {
@@ -179,8 +181,10 @@ export default function Dashboard() {
       </div>
     );
   }
-
+const router=useRouter();
   return (
+    
+
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
       {/* Navigation */}
       <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20 p-4">
@@ -437,6 +441,10 @@ export default function Dashboard() {
           <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-medium hover:shadow-lg transition-all flex items-center">
             <Edit3 className="w-5 h-5 mr-2" />
             Edit Profile
+          </button>
+           <button onClick={()=>{router.push('/browse')}} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-xl font-medium hover:shadow-lg transition-all flex items-center">
+            
+            Go To Browse Skills
           </button>
           <button className="bg-white/10 border border-white/20 text-white px-8 py-3 rounded-xl font-medium hover:bg-white/20 transition-all flex items-center">
             <Settings className="w-5 h-5 mr-2" />

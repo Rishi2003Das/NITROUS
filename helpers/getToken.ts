@@ -51,3 +51,19 @@ export const verifyRefreshToken = async (token: string) => {
     return { valid: false, error };
   }
 };
+
+interface ConnectTokenPayload {
+  userId: string;
+  senderEmail: string;
+  senderName: string;
+  emailType: 'CONNECT';
+}
+
+export const generateConnectToken = (payload: ConnectTokenPayload) => {
+  const token = jwt.sign(
+    payload,
+    process.env.TOKEN_SECRET!,  // or use ACCESS_TOKEN_SECRET
+    { expiresIn: '1h' }
+  );
+  return token;
+};
