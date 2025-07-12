@@ -157,8 +157,8 @@ export default function Register() {
     }
 
     // Redirect to login or dashboard after successful registration
-    //router.push('/login?registered=true');
-    alert("Your Profile Has Been Created! Check Your Email")
+    router.push('/login?registered=true');
+    
   } catch (err) {
     setError(err instanceof Error ? err.message : 'Registration failed');
   } finally {

@@ -288,10 +288,40 @@ export default function Browse() {
 
               {/* Actions */}
               <div className="flex space-x-2">
-                <button className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-medium hover:shadow-lg transition-all flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 mr-1" />
-                  Connect
-                </button>
+               <button
+  onClick={async () => {
+    const senderString = localStorage.getItem('user');
+    if (!senderString) return alert("You're not logged in");
+
+    const sender = JSON.parse(senderString);
+
+    try {
+      const res = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverEmail: user.email, // the user card you're clicking
+          sender,
+        }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        alert(`Connect email sent to ${user.name}`);
+      } else {
+        alert(result.error || 'Failed to send email');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong');
+    }
+  }}
+  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-medium hover:shadow-lg transition-all flex items-center justify-center"
+>
+  <MessageSquare className="w-4 h-4 mr-1" />
+  Connect
+</button>
+
                 <Link 
                   href={`/profile/${user._id}`}
                   className="flex-1 bg-white/10 border border-white/20 text-white py-2 rounded-lg font-medium hover:bg-white/20 transition-all flex items-center justify-center"

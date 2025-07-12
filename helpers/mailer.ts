@@ -1,11 +1,13 @@
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
-
 interface EmailOptions {
   email: string;
-  emailType: 'VERIFY' | 'RESET';
+  emailType: 'VERIFY' | 'RESET' | string;
   userId: string;
+  html?: string;     // ✅ Add this
+  subject?: string;  // ✅ Add this
 }
+
 
 export const sendEmail = async ({ email, emailType, userId }: EmailOptions) => {
   try {
@@ -71,7 +73,7 @@ export const sendEmail = async ({ email, emailType, userId }: EmailOptions) => {
 
     // Send email
     await transporter.sendMail({
-      from: `"KreatorKit" <${process.env.MAILER_FROM}>`,
+      from: `"SkillSwap" <${process.env.MAILER_FROM}>`,
       to: email,
       subject,
       html,
