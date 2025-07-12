@@ -25,8 +25,8 @@ The user is also able to delete the swap request if it is not accepted.
 ## Team Name
 NITROUS
 ## Team Members
-Pratiki Chakraborty
-Rishi Das
-Anirudh Venkateshwaran
-Ashwani Senapati
+#### Pratiki Chakraborty
+#### Rishi Das
+#### Anirudh Venkateshwaran
+#### Ashwani Senapati
 
