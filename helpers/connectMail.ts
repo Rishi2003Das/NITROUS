@@ -1,12 +1,22 @@
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
-interface EmailOptions {
+export interface EmailOptions {
   email: string;
-  emailType: 'VERIFY' | 'RESET' | string;
-  userId: string;
-  html?: string;     // ✅ Add this
-  subject?: string;  // ✅ Add this
+  subject:string;
+   emailType: 'VERIFY' | 'RESET' | 'CONNECT_REQUEST' | 'CONNECT_ACCEPTED' | 'CONNECT_REJECTED' | 'CONNECT-RESPONSE'; // ✅ Add this
+  userId?: string;
+  token?: string;
+  html?: string; // ✅ Add this line
+  senderDetails?: {
+    name: string;
+    email: string;
+    location?: string;
+    skillsOffered?: Array<{ name: string }>;
+    skillsWanted?: Array<{ name: string }>;
+  };
 }
+
+
 
 export const sendEmail = async ({ email, emailType, userId, html, subject }: EmailOptions) => {
   try {
