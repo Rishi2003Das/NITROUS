@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, Star, MessageSquare, Heart, Zap, ArrowLeft, Clock, User } from 'lucide-react';
 import Link from 'next/link';
 
+interface IUser {
+  _id: string;
+  name: string;
+  email: string;
+  location?: string;
+  profilePhoto?: string;
+  rating?: number;
+  swapCount?: number;
+  skillsOffered: Array<{ name: string; proficiency?: string; _id?: string }>;
+  skillsWanted: Array<{ name: string; proficiency?: string; _id?: string }>;
+  availability: Array<{ day: string; time: string; _id?: string }>;
+  isPublic?: boolean;
+  isVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export default function Browse() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all skills');
   const [showFilters, setShowFilters] = useState(false);
+  const [users, setUsers] = useState<IUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const categories = [
     'All Skills',
@@ -21,93 +41,93 @@ export default function Browse() {
     'Crafts'
   ];
 
-  const users = [
-    {
-      id: 1,
-      name: "Sarah Chen",
-      avatar: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "San Francisco, CA",
-      rating: 4.9,
-      reviewCount: 23,
-      skillsOffered: ["Photoshop", "UI/UX Design", "Figma"],
-      skillsWanted: ["Guitar", "Spanish", "Cooking"],
-      availability: "Weekends",
-      isOnline: true,
-      bio: "Professional designer with 5+ years experience. Love teaching creative skills!"
-    },
-    {
-      id: 2,
-      name: "Mike Rodriguez",
-      avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "Austin, TX",
-      rating: 4.8,
-      reviewCount: 31,
-      skillsOffered: ["Spanish", "Guitar", "Salsa Dancing"],
-      skillsWanted: ["Web Development", "Photography", "Excel"],
-      availability: "Evenings",
-      isOnline: false,
-      bio: "Native Spanish speaker and music enthusiast. Let's learn together!"
-    },
-    {
-      id: 3,
-      name: "Emma Wilson",
-      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "London, UK",
-      rating: 5.0,
-      reviewCount: 18,
-      skillsOffered: ["Piano", "French", "Baking"],
-      skillsWanted: ["Yoga", "Digital Marketing", "Painting"],
-      availability: "Flexible",
-      isOnline: true,
-      bio: "Classical pianist and pastry chef. Passionate about sharing knowledge!"
-    },
-    {
-      id: 4,
-      name: "David Kim",
-      avatar: "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "Seoul, South Korea",
-      rating: 4.7,
-      reviewCount: 42,
-      skillsOffered: ["Korean", "Taekwondo", "K-Pop Dance"],
-      skillsWanted: ["English", "Programming", "Chess"],
-      availability: "Mornings",
-      isOnline: true,
-      bio: "Language teacher and martial arts instructor. Always excited to meet new people!"
-    },
-    {
-      id: 5,
-      name: "Lisa Thompson",
-      avatar: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "Toronto, Canada",
-      rating: 4.9,
-      reviewCount: 27,
-      skillsOffered: ["Photography", "Photoshop", "Video Editing"],
-      skillsWanted: ["Violin", "Italian", "Rock Climbing"],
-      availability: "Weekends",
-      isOnline: false,
-      bio: "Professional photographer with a passion for visual storytelling."
-    },
-    {
-      id: 6,
-      name: "Alex Johnson",
-      avatar: "https://images.pexels.com/photos/1300402/pexels-photo-1300402.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-      location: "Sydney, Australia",
-      rating: 4.6,
-      reviewCount: 35,
-      skillsOffered: ["Surfing", "Australian English", "Cooking"],
-      skillsWanted: ["Japanese", "Skateboarding", "Graphic Design"],
-      availability: "Afternoons",
-      isOnline: true,
-      bio: "Surf instructor and food lover. Let's exchange skills and stories!"
-    }
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load users');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Helper function to format availability
+  const formatAvailability = (availability: { day: string; time: string }[]) => {
+    if (!availability || availability.length === 0) return 'Not specified';
+    
+    const days = [...new Set(availability.map(a => a.day))];
+    const times = [...new Set(availability.map(a => a.time))];
+    
+    return `${days.join('/')} ${times.join('/')}`;
+  };
+
+  // Helper function to check if user matches category
+  const matchesCategory = (user: IUser, category: string) => {
+    if (category === 'all skills') return true;
+    
+    const categoryLower = category.toLowerCase();
+    const userSkills = [
+      ...user.skillsOffered.map(skill => skill.name.toLowerCase()),
+      ...user.skillsWanted.map(skill => skill.name.toLowerCase())
+    ];
+    
+    return userSkills.some(skill => skill.includes(categoryLower));
+  };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.skillsOffered.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         user.skillsWanted.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
+    // Only show public profiles (default to true if not specified)
+    if (user.isPublic === false) return false;
+    
+    // Check search query
+    const matchesSearch = searchQuery === '' || (
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.skillsOffered.some(skill => skill.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      user.skillsWanted.some(skill => skill.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.location && user.location.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    
+    // Check category filter
+    const matchesCategoryFilter = matchesCategory(user, selectedCategory);
+    
+    return matchesSearch && matchesCategoryFilter;
   });
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category.toLowerCase());
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
+        <div className="text-center p-6 bg-white/10 rounded-xl">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
@@ -172,7 +192,7 @@ export default function Browse() {
             {categories.map((category, index) => (
               <button
                 key={index}
-                onClick={() => setSelectedCategory(category.toLowerCase())}
+                onClick={() => handleCategoryChange(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   selectedCategory === category.toLowerCase()
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
@@ -188,26 +208,30 @@ export default function Browse() {
         {/* Results */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => (
-            <div key={user.id} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all group">
+            <div key={user._id} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all group">
               {/* User Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <img
-                      src={user.avatar}
+                      src={user.profilePhoto || 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop'}
                       alt={user.name}
-                      className="w-16 h-16 rounded-full border-2 border-white/20"
+                      className="w-16 h-16 rounded-full border-2 border-white/20 object-cover"
                     />
-                    {user.isOnline && (
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                    {user.isVerified && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
                     )}
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">{user.name}</h3>
-                    <div className="flex items-center space-x-1 text-gray-300">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-sm">{user.location}</span>
-                    </div>
+                    {user.location && (
+                      <div className="flex items-center space-x-1 text-gray-300">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm">{user.location}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button className="text-gray-400 hover:text-red-400 transition-colors">
@@ -217,19 +241,20 @@ export default function Browse() {
 
               {/* Rating */}
               <div className="flex items-center space-x-2 mb-4">
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span className="text-white font-medium">{user.rating}</span>
-                </div>
-                <span className="text-gray-400 text-sm">({user.reviewCount} reviews)</span>
+                {user.rating && (
+                  <>
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span className="text-white font-medium">{user.rating.toFixed(1)}</span>
+                    </div>
+                    <span className="text-gray-400 text-sm">({user.swapCount } swaps)</span>
+                  </>
+                )}
                 <div className="flex items-center space-x-1 text-gray-400">
                   <Clock className="w-4 h-4" />
-                  <span className="text-sm">{user.availability}</span>
+                  <span className="text-sm">{formatAvailability(user.availability)}</span>
                 </div>
               </div>
-
-              {/* Bio */}
-              <p className="text-gray-300 text-sm mb-4 line-clamp-2">{user.bio}</p>
 
               {/* Skills */}
               <div className="space-y-3 mb-6">
@@ -238,7 +263,7 @@ export default function Browse() {
                   <div className="flex flex-wrap gap-1">
                     {user.skillsOffered.slice(0, 3).map((skill, index) => (
                       <span key={index} className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full text-xs">
-                        {skill}
+                        {skill.name}
                       </span>
                     ))}
                     {user.skillsOffered.length > 3 && (
@@ -251,7 +276,7 @@ export default function Browse() {
                   <div className="flex flex-wrap gap-1">
                     {user.skillsWanted.slice(0, 3).map((skill, index) => (
                       <span key={index} className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full text-xs">
-                        {skill}
+                        {skill.name}
                       </span>
                     ))}
                     {user.skillsWanted.length > 3 && (
@@ -268,7 +293,7 @@ export default function Browse() {
                   Connect
                 </button>
                 <Link 
-                  href={`/profile/${user.id}`}
+                  href={`/profile/${user._id}`}
                   className="flex-1 bg-white/10 border border-white/20 text-white py-2 rounded-lg font-medium hover:bg-white/20 transition-all flex items-center justify-center"
                 >
                   <User className="w-4 h-4 mr-1" />
@@ -286,7 +311,9 @@ export default function Browse() {
               <Search className="w-12 h-12 text-gray-400" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">No results found</h3>
-            <p className="text-gray-300">Try adjusting your search or filters</p>
+            <p className="text-gray-300">
+              {searchQuery ? `No users found matching "${searchQuery}"` : 'Try adjusting your search or filters'}
+            </p>
           </div>
         )}
       </div>

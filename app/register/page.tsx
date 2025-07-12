@@ -3,34 +3,28 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, MapPin, Zap, ArrowLeft, Upload } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Register() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     location: '',
-    profilePhoto: null,
-    skillsOffered: [],
-    skillsWanted: [],
-    availability: [],
+    profilePhoto: '',
+    skillsOffered: '',
+    skillsWanted: '',
+    availability: [] as string[],
     isPublic: true,
     agreeToTerms: false
   });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (step < 3) {
-      setStep(step + 1);
-    } else {
-      // Handle registration logic here
-      console.log('Registration data:', formData);
-    }
-  };
 
   const availabilityOptions = [
     'Weekday Mornings',
@@ -40,6 +34,137 @@ export default function Register() {
     'Weekend Afternoons',
     'Weekend Evenings'
   ];
+   const transformAvailability = (options: string[]) => {
+    return options.map(option => {
+      const [day, time] = option.split(' ');
+      return {
+        day: day.toLowerCase().includes('weekday') ? 'weekday' : 
+             day.toLowerCase().includes('weekend') ? 'weekend' : 
+             day.toLowerCase(),
+        time: time.toLowerCase().replace('s', '') // removes plural
+      };
+    });
+  };
+
+  const handleAvailabilityChange = (option: string) => {
+    setFormData(prev => {
+      if (prev.availability.includes(option)) {
+        return {
+          ...prev,
+          availability: prev.availability.filter(item => item !== option)
+        };
+      } else {
+        return {
+          ...prev,
+          availability: [...prev.availability, option]
+        };
+      }
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    setLoading(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        const base64Image = reader.result as string;
+        // Upload to Cloudinary via API route
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: JSON.stringify({ image: base64Image }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Upload failed');
+        
+        setFormData(prev => ({
+          ...prev,
+          profilePhoto: data.secureUrl
+        }));
+      };
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Image upload failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+};
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (step < 3) {
+    setStep(step + 1);
+    return;
+  }
+
+  // Final submission
+  if (formData.password !== formData.confirmPassword) {
+    setError('Passwords do not match');
+    return;
+  }
+
+  if (!formData.agreeToTerms) {
+    setError('You must agree to the terms and conditions');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  
+  
+  try {
+    // Process skills into arrays
+    const processedData = {
+      ...formData,
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      skillsOffered: formData.skillsOffered
+        .split(',')
+        .map(skill => skill.trim())
+        .filter(skill => skill.length > 0)
+        .map(skill => ({ name: skill })),
+      skillsWanted: formData.skillsWanted
+        .split(',')
+        .map(skill => skill.trim())
+        .filter(skill => skill.length > 0)
+        .map(skill => ({ name: skill })),
+        availability: transformAvailability(formData.availability),
+        confirmPassword: undefined
+    };
+
+    // Remove confirmPassword as we don't need to send it to the backend
+    const { confirmPassword, ...dataToSend } = processedData;
+
+    const response = await fetch('/api/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataToSend),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+
+    // Redirect to login or dashboard after successful registration
+    //router.push('/login?registered=true');
+    alert("Your Profile Has Been Created! Check Your Email")
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Registration failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
@@ -98,6 +223,13 @@ export default function Register() {
             </p>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 text-red-200 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Registration Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Step 1: Basic Info */}
@@ -146,8 +278,9 @@ export default function Register() {
                     <input
                       type={showPassword ? "text" : "password"}
                       required
+                      minLength={8}
                       className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Create a password"
+                      placeholder="Create a password (min 8 characters)"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                     />
@@ -210,11 +343,23 @@ export default function Register() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Profile Photo (Optional)
                   </label>
-                  <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-white/40 transition-colors">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Click to upload or drag and drop</p>
-                    <input type="file" className="hidden" accept="image/*" />
-                  </div>
+                  <label className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-white/40 transition-colors cursor-pointer block">
+                    {formData.profilePhoto ? (
+                      <div className="w-20 h-20 mx-auto rounded-full bg-cover bg-center mb-2" 
+                           style={{ backgroundImage: `url(${formData.profilePhoto})` }} />
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-400 text-sm">Click to upload or drag and drop</p>
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileUpload}
+                    />
+                  </label>
                 </div>
 
                 <div>
@@ -239,23 +384,27 @@ export default function Register() {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Skills I Can Teach
+                    Skills I Can Teach (comma separated)
                   </label>
                   <textarea
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                     rows={3}
                     placeholder="e.g., Photoshop, Guitar, Spanish, Cooking..."
+                    value={formData.skillsOffered}
+                    onChange={(e) => setFormData({...formData, skillsOffered: e.target.value})}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Skills I Want to Learn
+                    Skills I Want to Learn (comma separated)
                   </label>
                   <textarea
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                     rows={3}
                     placeholder="e.g., Excel, Piano, French, Web Design..."
+                    value={formData.skillsWanted}
+                    onChange={(e) => setFormData({...formData, skillsWanted: e.target.value})}
                   />
                 </div>
 
@@ -269,6 +418,8 @@ export default function Register() {
                         <input
                           type="checkbox"
                           className="w-4 h-4 text-blue-500 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
+                          checked={formData.availability.includes(option)}
+                          onChange={() => handleAvailabilityChange(option)}
                         />
                         <span className="ml-2 text-sm text-gray-300">{option}</span>
                       </label>
@@ -307,15 +458,27 @@ export default function Register() {
                   type="button"
                   onClick={() => setStep(step - 1)}
                   className="flex-1 bg-white/10 border border-white/20 text-white py-3 rounded-xl font-medium hover:bg-white/20 transition-all"
+                  disabled={loading}
                 >
                   Back
                 </button>
               )}
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={loading}
               >
-                {step < 3 ? 'Continue' : 'Create Account'}
+                {loading ? (
+                  <span className="inline-flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {step < 3 ? 'Continuing...' : 'Creating Account...'}
+                  </span>
+                ) : (
+                  step < 3 ? 'Continue' : 'Create Account'
+                )}
               </button>
             </div>
           </form>

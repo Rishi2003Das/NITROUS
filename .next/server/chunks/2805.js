@@ -1,0 +1,1 @@
+"use strict";exports.id=2805,exports.ids=[2805],exports.modules={32805:(e,s,r)=>{r.d(s,{X8:()=>t});var E=r(23269),n=r.n(E);r(15418);let t=e=>{let s=n().sign(e,process.env.ACCESS_TOKEN_SECRET,{expiresIn:"30m"}),r=n().sign(e,process.env.REFRESH_TOKEN_SECRET,{expiresIn:"7d"});return{accessToken:s,refreshToken:r}}}};

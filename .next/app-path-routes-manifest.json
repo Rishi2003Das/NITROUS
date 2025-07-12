@@ -1,0 +1,19 @@
+{
+  "/_not-found": "/_not-found",
+  "/page": "/",
+  "/access-requests/page": "/access-requests",
+  "/browse/page": "/browse",
+  "/admin/page": "/admin",
+  "/dashboard/page": "/dashboard",
+  "/rating/page": "/rating",
+  "/login/page": "/login",
+  "/requests/page": "/requests",
+  "/verifyEmail/page": "/verifyEmail",
+  "/register/page": "/register",
+  "/user-details/page": "/user-details",
+  "/api/users/route": "/api/users",
+  "/api/upload/route": "/api/upload",
+  "/api/verify/route": "/api/verify",
+  "/api/signup/route": "/api/signup",
+  "/api/login/route": "/api/login"
+}
