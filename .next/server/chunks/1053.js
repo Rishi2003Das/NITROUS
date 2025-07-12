@@ -1,0 +1,3 @@
+"use strict";exports.id=1053,exports.ids=[1053],exports.modules={91053:(e,s,r)=>{r.d(s,{C:()=>t});var o=r(63330);let t=async({email:e,emailType:s,userId:r,html:t,subject:a})=>{try{let r=o.createTransport({service:"gmail",host:"smtp.gmail.com",port:465,secure:!0,auth:{user:process.env.MAILER_USER,pass:process.env.MAILER_PASS}}),i=t||`
+      <p>Default content. No HTML provided.</p>
+    `;await r.sendMail({from:`"SkillSwap" <${process.env.MAILER_FROM}>`,to:e,subject:a||("VERIFY"===s?"Verify Your Email":"Reset Your Password"),html:i})}catch(e){throw console.error("Email sending failed:",e),Error("Email sending failed")}}}};
